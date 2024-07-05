@@ -1,4 +1,3 @@
-# utils/image_segmenter.py
 import os
 from rembg import remove 
 from PIL import Image
@@ -31,7 +30,6 @@ def segment_images(input_base_folder, output_base_folder):
 
                 print(f"Processed {filename} in {class_folder}: bounding box = {bbox}")
 
-# Notebook: llamando a la función segment_images
 from utils.image_segmenter import segment_images
 
 input_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator_2/data/images'

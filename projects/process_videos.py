@@ -1,4 +1,3 @@
-# projects/process_videos.py
 import os
 from utils.frame_extractor import extract_frames
 

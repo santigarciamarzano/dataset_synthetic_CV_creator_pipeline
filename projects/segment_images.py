@@ -1,4 +1,3 @@
-# projects/segment_images.py
 import os
 from utils.image_segmenter import segment_images
 

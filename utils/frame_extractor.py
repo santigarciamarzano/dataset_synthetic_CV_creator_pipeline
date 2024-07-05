@@ -1,4 +1,3 @@
-# utils/frame_extractor.py
 import os
 import cv2
 
