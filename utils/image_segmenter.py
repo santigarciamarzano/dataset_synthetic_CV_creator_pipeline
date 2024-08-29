@@ -1,15 +1,27 @@
+#image_segmenter.py
 import os
 from rembg import remove 
 from PIL import Image
 
 def segment_images(input_base_folder, output_base_folder):
+    # Verificar que el directorio de salida existe
+    if not os.path.exists(output_base_folder):
+        os.makedirs(output_base_folder)
+
+    # Iterar sobre los subdirectorios dentro del directorio base
     for class_folder in os.listdir(input_base_folder):
         input_folder = os.path.join(input_base_folder, class_folder)
         output_folder = os.path.join(output_base_folder, class_folder)
-        
+
+        # Verificar si el subdirectorio actual es realmente un directorio
+        if not os.path.isdir(input_folder):
+            continue
+
+        # Crear la carpeta de salida si no existe
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
-        
+
+        # Procesar todas las imágenes en el subdirectorio
         for filename in os.listdir(input_folder):
             if filename.endswith(('.png', '.jpg', '.jpeg')):
                 input_path = os.path.join(input_folder, filename)
@@ -30,11 +42,9 @@ def segment_images(input_base_folder, output_base_folder):
 
                 print(f"Processed {filename} in {class_folder}: bounding box = {bbox}")
 
-from utils.image_segmenter import segment_images
-
-input_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator_2/data/images'
-output_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator_2/data/segment_images'
+# Ejemplo de uso
+input_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/images'
+output_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/segmented_images'
 
 segment_images(input_base_folder, output_base_folder)
-
 

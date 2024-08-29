@@ -1,7 +1,8 @@
+#image_utils.py
 import random
 from PIL import Image
 
-def scale_image(img, bg_width, scale_min=0.07, scale_max=0.20):
+def scale_image(img, bg_width, scale_min=0.02, scale_max=0.09): #Modificar el rango de escala que se requiera
     scale_factor = random.uniform(scale_min, scale_max)
     new_width = int(bg_width * scale_factor)
     new_height = int(new_width * (img.height / img.width))
@@ -17,7 +18,7 @@ def paste_image(bg_img, fg_img, max_x, max_y):
     bg_img.paste(fg_img, (random_x, random_y), fg_img)
     return random_x, random_y
 
-def calculate_bounding_box(x, y, img_width, img_height, bg_width, bg_height):
+def calculate_bounding_box(x, y, img_width, img_height, bg_width, bg_height):#no normalizar
     x_center = (x + img_width / 2) / bg_width
     y_center = (y + img_height / 2) / bg_height
     width = img_width / bg_width

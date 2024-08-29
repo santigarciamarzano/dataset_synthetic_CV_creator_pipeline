@@ -1,3 +1,4 @@
+#combine_images.py
 import random
 import os
 from PIL import Image
@@ -56,9 +57,9 @@ def combine_images(output_folder_segmented, background_folder, output_folder_fin
                 f.write("\n".join(labels))
 
 if __name__ == "__main__":
-    output_folder_segmented = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator_1/segment_images'
-    background_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator_1/backgrounds'
-    output_folder_final = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator_1/imagen_final'
-    label_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator_1/labels'
+    output_folder_segmented = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/segmented_images'
+    background_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/backgrounds'
+    output_folder_final = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/imagen_final'
+    label_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/labels'
 
     combine_images(output_folder_segmented, background_folder, output_folder_final, label_folder)

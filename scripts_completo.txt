@@ -1,0 +1,538 @@
+## BLOQUES DE CREACION DE FUNCIONES archivos.py:
+
+
+
+
+
+#process_videos.py
+import os
+from utils.frame_extractor import extract_frames
+
+def process_videos_from_folder(video_folder, base_output_folder, num_frames=None, interval=None):
+    # Procesar videos dentro de subcarpetas organizadas por productos
+    for product_folder in os.listdir(video_folder):
+        product_folder_path = os.path.join(video_folder, product_folder)
+        
+        if os.path.isdir(product_folder_path):  # Verifica si es una subcarpeta
+            # Extraer el código de barras del nombre de la carpeta
+            codigo_barra = product_folder.split('_')[0]
+            
+            for camera_folder in os.listdir(product_folder_path):
+                camera_folder_path = os.path.join(product_folder_path, camera_folder)
+                
+                if os.path.isdir(camera_folder_path):  # Verifica si es una subcarpeta de la cámara
+                    for video_file in os.listdir(camera_folder_path):
+                        if video_file.endswith(('.mp4', '.avi', '.mov')):
+                            video_path = os.path.join(camera_folder_path, video_file)
+                            camera = camera_folder.lower()  # Nombrar la cámara (camera_1, camera_2, etc.)
+
+                            # Crear la carpeta de salida en 'image_market1501'
+                            output_folder = os.path.join(base_output_folder, 'image_market1501', f"{codigo_barra}_{camera}")
+                            extract_frames(video_path, output_folder, num_frames, interval)
+
+    # Procesar videos sueltos en la carpeta raíz
+    video_paths = [os.path.join(video_folder, f) for f in os.listdir(video_folder) if f.endswith(('.mp4', '.avi', '.mov'))]
+    
+    for class_idx, video_path in enumerate(video_paths):
+        output_folder = os.path.join(base_output_folder, 'images_yolo', f"clase_{class_idx}")
+        extract_frames(video_path, output_folder, num_frames, interval)
+
+if __name__ == "__main__":
+    video_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/videos'
+    base_output_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data'
+    num_frames = 10  
+    interval = None  
+
+    process_videos_from_folder(video_folder, base_output_folder, num_frames, interval)
+
+
+
+
+
+#frame_extractor.py
+import os
+import cv2
+
+def extract_frames(video_path, output_folder, num_frames=None, interval=None):
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    cap = cv2.VideoCapture(video_path)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    if num_frames is not None:
+        frame_indices = [int(i * total_frames / num_frames) for i in range(num_frames)]
+    elif interval is not None:
+        frame_indices = [int(i * fps * interval) for i in range(int(total_frames / (fps * interval)))]
+    else:
+        raise ValueError("Pasar otro valor de numero de frames o intervalo")
+
+    for idx, frame_idx in enumerate(frame_indices):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame_path = os.path.join(output_folder, f"frame_{idx:04d}.jpg")
+        cv2.imwrite(frame_path, frame)
+
+    cap.release()
+
+
+
+
+
+
+#image_segmenter.py
+import os
+from rembg import remove 
+from PIL import Image
+
+def segment_images(input_base_folder, output_base_folder):
+    # Verificar que el directorio de salida existe
+    if not os.path.exists(output_base_folder):
+        os.makedirs(output_base_folder)
+
+    # Iterar sobre los subdirectorios dentro del directorio base
+    for class_folder in os.listdir(input_base_folder):
+        input_folder = os.path.join(input_base_folder, class_folder)
+        output_folder = os.path.join(output_base_folder, class_folder)
+
+        # Verificar si el subdirectorio actual es realmente un directorio
+        if not os.path.isdir(input_folder):
+            continue
+
+        # Crear la carpeta de salida si no existe
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+
+        # Procesar todas las imágenes en el subdirectorio
+        for filename in os.listdir(input_folder):
+            if filename.endswith(('.png', '.jpg', '.jpeg')):
+                input_path = os.path.join(input_folder, filename)
+                output_path = os.path.join(output_folder, os.path.splitext(filename)[0] + '.png')
+
+                inp = Image.open(input_path)
+                output = remove(inp)
+
+                if output.mode != 'RGBA':
+                    output = output.convert('RGBA')
+
+                bbox = output.getbbox()
+                if bbox:
+                    output_cropped = output.crop(bbox)
+                    output_cropped.save(output_path)
+                else:
+                    output.save(output_path)
+
+                print(f"Processed {filename} in {class_folder}: bounding box = {bbox}")
+
+# Ejemplo de uso
+input_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/images'
+output_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/segmented_images'
+
+segment_images(input_base_folder, output_base_folder)
+
+
+
+
+
+
+
+#segment_images.py
+import os
+from utils.image_segmenter import segment_images
+
+def main(input_folder, output_folder):
+    segment_images(input_folder, output_folder)
+
+if __name__ == "__main__":
+    input_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/images'
+    output_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/segmented_images'
+    
+    for class_folder in os.listdir(input_base_folder):
+        input_folder = os.path.join(input_base_folder, class_folder)
+        output_folder = os.path.join(output_base_folder, class_folder)
+        main(input_folder, output_folder)
+
+
+
+
+
+
+
+import os
+from PIL import Image
+import random
+
+def add_background_to_images(segmented_images_folder, cropped_images_folder):
+    os.makedirs(cropped_images_folder, exist_ok=True)
+
+    background_colors = [
+        (245, 245, 245),  # Gris claro
+        (220, 220, 220),  # Gris más oscuro
+        (238, 232, 170),  # Beige
+        (240, 230, 140),  # Amarillo claro
+        (255, 228, 181),  # Beige claro
+        (250, 240, 230),  # Almendra blanqueada
+        (255, 222, 173),  # Blanco Navajo
+        (255, 228, 225),  # Rosa suave
+        (245, 222, 179),  # Trigo
+        (240, 248, 255),  # Azul claro
+        (255, 250, 250),  # Nieve
+        (169, 169, 169),  # Gris oscuro
+        (128, 128, 128),  # Gris
+        (105, 105, 105),  # Gris tenue
+        (80, 80, 80),     # Carbón
+        (54, 69, 79),     # Gris pizarra oscuro
+        (47, 79, 79),     # Gris pizarra profundo
+        (39, 39, 39),     # Carbón negro
+    ]
+
+    class_folders = [os.path.join(segmented_images_folder, folder) for folder in os.listdir(segmented_images_folder) if os.path.isdir(os.path.join(segmented_images_folder, folder))]
+
+    for class_folder in class_folders:
+        class_name = os.path.basename(class_folder)
+        output_class_folder = os.path.join(cropped_images_folder, class_name)
+        
+        os.makedirs(output_class_folder, exist_ok=True)
+        
+        images = [os.path.join(class_folder, img) for img in os.listdir(class_folder) if img.endswith(('.png', '.jpg', '.jpeg'))]
+        
+        for image_path in images:
+            img = Image.open(image_path)
+            
+            bg_color = random.choice(background_colors)
+            bg = Image.new('RGB', img.size, bg_color)
+            
+            bg.paste(img, (0, 0), img)
+            
+            output_image_path = os.path.join(output_class_folder, f"cropped_{os.path.basename(image_path)}")
+            bg.save(output_image_path)
+            
+            print(f"Imagen guardada: {output_image_path} con fondo {bg_color}")
+
+if __name__ == "__main__":
+    segmented_images_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/segmented_images'
+    cropped_images_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/cropped_images'
+    add_background_to_images(segmented_images_folder, cropped_images_folder)
+
+
+
+
+
+
+
+#image_utils.py
+import random
+from PIL import Image
+
+def scale_image(img, bg_width, scale_min=0.02, scale_max=0.09): #Modificar el rango de escala que se requiera
+    scale_factor = random.uniform(scale_min, scale_max)
+    new_width = int(bg_width * scale_factor)
+    new_height = int(new_width * (img.height / img.width))
+    return img.resize((new_width, new_height), Image.LANCZOS)
+
+def rotate_image(img, angle_min=0, angle_max=360):
+    angle = random.uniform(angle_min, angle_max)
+    return img.rotate(angle, expand=True)
+
+def paste_image(bg_img, fg_img, max_x, max_y):
+    random_x = random.randint(0, max_x)
+    random_y = random.randint(0, max_y)
+    bg_img.paste(fg_img, (random_x, random_y), fg_img)
+    return random_x, random_y
+
+def calculate_bounding_box(x, y, img_width, img_height, bg_width, bg_height):#no normalizar
+    x_center = (x + img_width / 2) / bg_width
+    y_center = (y + img_height / 2) / bg_height
+    width = img_width / bg_width
+    height = img_height / bg_height
+    return x_center, y_center, width, height
+
+
+
+
+
+
+
+#combine_images.py
+import random
+import os
+from PIL import Image
+from utils.image_utils import scale_image, rotate_image, paste_image, calculate_bounding_box
+
+def combine_images(output_folder_segmented, background_folder, output_folder_final, label_folder):
+    os.makedirs(output_folder_final, exist_ok=True)
+    os.makedirs(label_folder, exist_ok=True)
+
+    class_images = {}
+    for class_idx, class_folder in enumerate(os.listdir(output_folder_segmented)):
+        class_folder_path = os.path.join(output_folder_segmented, class_folder)
+        if os.path.isdir(class_folder_path):
+            class_images[class_idx] = [os.path.join(class_folder_path, f) for f in os.listdir(class_folder_path) if f.endswith('.png')]
+
+    background_files = [f for f in os.listdir(background_folder) if f.endswith(('.png', '.jpg', '.jpeg'))]
+    num_backgrounds = len(background_files)
+
+    max_images_per_class = max(len(images) for images in class_images.values())
+
+    for i in range(max_images_per_class):
+        for background_idx, background_filename in enumerate(background_files):
+            background_path = os.path.join(background_folder, background_filename)
+            background_img = Image.open(background_path)
+            bg_width, bg_height = background_img.size
+
+            final_img = background_img.convert('RGBA')  # Asegurarse de que el fondo está en 'RGBA'
+            labels = []
+
+            
+            for class_idx, images in class_images.items():
+                if i < len(images):  # Verificar si hay suficientes imágenes en esta clase
+                    segmented_path = images[i]
+                    segmented_img = Image.open(segmented_path)
+
+                    
+                    segmented_resized = scale_image(segmented_img, bg_width) # Escalar, rotar y pegar la imagen segmentada
+                    segmented_rotated = rotate_image(segmented_resized)
+                    max_x = bg_width - segmented_rotated.width
+                    max_y = bg_height - segmented_rotated.height
+                    random_x, random_y = paste_image(final_img, segmented_rotated, max_x, max_y)
+
+                    x_center, y_center, width, height = calculate_bounding_box(
+                        random_x, random_y, segmented_rotated.width, segmented_rotated.height, bg_width, bg_height)
+
+                    labels.append(f"{class_idx} {x_center} {y_center} {width} {height}")
+
+            final_filename = f"final_{os.path.splitext(background_filename)[0]}_{i}.jpg"
+            final_path = os.path.join(output_folder_final, final_filename)
+            final_img = final_img.convert('RGB')  # Convertir a 'RGB' antes de guardar
+            final_img.save(final_path)
+
+            label_filename = f"{os.path.splitext(final_filename)[0]}.txt"
+            label_path = os.path.join(label_folder, label_filename)
+            with open(label_path, 'w') as f:
+                f.write("\n".join(labels))
+
+if __name__ == "__main__":
+    output_folder_segmented = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/segmented_images'
+    background_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/backgrounds'
+    output_folder_final = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/imagen_final'
+    label_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/labels'
+
+    combine_images(output_folder_segmented, background_folder, output_folder_final, label_folder)
+
+
+
+
+#bbox_utils.py
+import os
+from PIL import Image, ImageDraw, ImageFont
+
+def draw_bounding_box(image, bbox, class_id, color=(0, 255, 0), thickness=3):
+    draw = ImageDraw.Draw(image)
+    for i in range(thickness):
+        draw.rectangle(
+            [(bbox[0] - i, bbox[1] - i), (bbox[2] + i, bbox[3] + i)],
+            outline=color
+        )
+    
+    font = ImageFont.load_default() # NO FUNCIONA NO SE PORQUEE
+    text_position = (bbox[0], bbox[1] - 10)
+    draw.text(text_position, str(class_id), fill=color, font=font)
+
+def calculate_bbox_coordinates(center_x, center_y, norm_width, norm_height, img_width, img_height):
+    box_width = norm_width * img_width
+    box_height = norm_height * img_height
+    x_min = int((center_x * img_width) - (box_width / 2))
+    y_min = int((center_y * img_height) - (box_height / 2))
+    x_max = int((center_x * img_width) + (box_width / 2))
+    y_max = int((center_y * img_height) + (box_height / 2))
+
+    
+    if x_min < 0:
+        x_min = 0
+    if y_min < 0:
+        y_min = 0
+    if x_max > img_width:
+        x_max = img_width
+    if y_max > img_height:
+        y_max = img_height
+
+    return [x_min, y_min, x_max, y_max]
+
+
+
+
+#verify_bounding_boxes.py
+import os
+from PIL import Image
+from utils.bbox_utils import draw_bounding_box, calculate_bbox_coordinates
+
+def verify_bounding_boxes(output_folder_final, labels_folder, evaluation_folder, num_images_to_evaluate=50):
+    os.makedirs(evaluation_folder, exist_ok=True)
+
+    final_images = [f for f in os.listdir(output_folder_final) if f.endswith('.jpg')]
+    final_images = final_images[:num_images_to_evaluate]
+
+    for final_image in final_images:
+        final_image_path = os.path.join(output_folder_final, final_image)
+        label_path = os.path.join(labels_folder, os.path.splitext(final_image)[0] + '.txt')
+
+        img = Image.open(final_image_path)
+        img_draw = img.copy()
+
+        with open(label_path, 'r') as f:
+            for line in f:
+                parts = line.strip().split()
+                class_id = int(parts[0])
+                center_x = float(parts[1])
+                center_y = float(parts[2])
+                norm_width = float(parts[3])
+                norm_height = float(parts[4])
+
+                img_width, img_height = img.size
+                bbox = calculate_bbox_coordinates(center_x, center_y, norm_width, norm_height, img_width, img_height)
+                draw_bounding_box(img_draw, bbox, class_id, color=(0, 255, 0), thickness=3)
+
+        evaluation_image_path = os.path.join(evaluation_folder, final_image)
+        img_draw.save(evaluation_image_path)
+
+if __name__ == "__main__":
+    output_folder_final = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/imagen_final'
+    labels_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/labels'
+    evaluation_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/evaluated'
+    num_images_to_evaluate = 50
+
+    verify_bounding_boxes(output_folder_final, labels_folder, evaluation_folder, num_images_to_evaluate)
+
+
+
+
+
+
+
+
+#create_yolo_dataset.py
+import os
+import shutil
+import random
+import yaml
+
+def create_yolo_dataset(output_folder_final, label_folder, dataset_folder, train_ratio=0.8):
+    # crear carpetas para el dataset
+    train_images_folder = os.path.join(dataset_folder, 'train', 'images')
+    train_labels_folder = os.path.join(dataset_folder, 'train', 'labels')
+    val_images_folder = os.path.join(dataset_folder, 'val', 'images')
+    val_labels_folder = os.path.join(dataset_folder, 'val', 'labels')
+    
+    os.makedirs(train_images_folder, exist_ok=True)
+    os.makedirs(train_labels_folder, exist_ok=True)
+    os.makedirs(val_images_folder, exist_ok=True)
+    os.makedirs(val_labels_folder, exist_ok=True)
+    
+    # listar todas las imágenes y etiquetas
+    all_images = [f for f in os.listdir(output_folder_final) if f.endswith('.jpg')]
+    all_labels = [f for f in os.listdir(label_folder) if f.endswith('.txt')]
+    
+    # asegurarse de que cada imagen tenga su etiqueta correspondiente
+    matched_files = [(img, os.path.splitext(img)[0] + '.txt') for img in all_images if os.path.splitext(img)[0] + '.txt' in all_labels]
+    
+    # mezclar y dividir en train y val
+    random.shuffle(matched_files)
+    num_train = int(len(matched_files) * train_ratio)
+    
+    train_files = matched_files[:num_train]
+    val_files = matched_files[num_train:]
+    
+    # mover archivos a las carpetas correspondientes
+    for img_file, label_file in train_files:
+        shutil.copy(os.path.join(output_folder_final, img_file), train_images_folder)
+        shutil.copy(os.path.join(label_folder, label_file), train_labels_folder)
+    
+    for img_file, label_file in val_files:
+        shutil.copy(os.path.join(output_folder_final, img_file), val_images_folder)
+        shutil.copy(os.path.join(label_folder, label_file), val_labels_folder)
+    
+    # crear archivo .yaml
+    classes = sorted({int(line.split()[0]) for label_file in all_labels for line in open(os.path.join(label_folder, label_file))})
+    
+    yaml_content = {
+        'train': './train',
+        'val': './val',
+        'nc': len(classes),
+        'names': [f'clase_{cls}' for cls in classes]
+    }
+    
+    with open(os.path.join(dataset_folder, 'dataset.yaml'), 'w') as yaml_file:
+        yaml.dump(yaml_content, yaml_file, default_flow_style=False)
+
+if __name__ == "__main__":
+    output_folder_final = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/imagen_final'
+    label_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/labels'
+    dataset_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/dataset'
+    
+    create_yolo_dataset(output_folder_final, label_folder, dataset_folder, train_ratio=0.8)
+
+
+
+
+
+
+
+
+
+
+#create_market1501_dataset.py
+import os
+import shutil
+import random
+
+def create_market1501_dataset(cropped_images_folder, dataset_folder, train_ratio):
+    os.makedirs(os.path.join(dataset_folder, 'train'), exist_ok=True)
+    os.makedirs(os.path.join(dataset_folder, 'gallery'), exist_ok=True)
+    os.makedirs(os.path.join(dataset_folder, 'query'), exist_ok=True)
+
+    
+
+    for class_folder in os.listdir(cropped_images_folder):
+        class_path = os.path.join(cropped_images_folder, class_folder)
+        
+        if os.path.isdir(class_path):
+            images = [img for img in os.listdir(class_path) if img.endswith(('.png', '.jpg', '.jpeg'))]
+            num_images = len(images)
+            
+            random.shuffle(images)
+            
+            num_train = int(num_images * train_ratio)
+            
+            train_images = images[:num_train]
+            gallery_images = images[num_train:]
+            
+            for i, img in enumerate(train_images):
+                src = os.path.join(class_path, img)
+                dst = os.path.join(dataset_folder, 'train', f'{class_folder}_{i}{os.path.splitext(img)[1]}')
+                shutil.copy(src, dst)
+            
+            for i, img in enumerate(gallery_images):
+                src = os.path.join(class_path, img)
+                dst = os.path.join(dataset_folder, 'gallery', f'{class_folder}_{i}{os.path.splitext(img)[1]}')
+                shutil.copy(src, dst)
+            
+            if gallery_images:
+                query_img = gallery_images[0]
+                src = os.path.join(class_path, query_img)
+                dst = os.path.join(dataset_folder, 'query', f'{class_folder}_{0}{os.path.splitext(query_img)[1]}')
+                shutil.copy(src, dst)
+            
+            print(f"Clases procesadas: {class_folder}")
+    
+    print("Dataset Market-1501 creado con éxito.")
+
+if __name__ == "__main__":
+    cropped_images_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/cropped_images'
+    dataset_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/dataset_market1501'
+    train_ratio = 0.7
+    create_market1501_dataset(cropped_images_folder, dataset_folder, train_ratio)
+
+

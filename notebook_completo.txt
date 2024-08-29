@@ -1,0 +1,105 @@
+from projects.process_videos import process_videos_from_folder
+
+video_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/videos'
+base_output_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/images'
+num_frames = 10  # numero de frames a extraer
+interval = None  # intervalo entre frames
+
+process_videos_from_folder(video_folder, base_output_folder, num_frames, interval)
+
+
+
+
+
+
+
+from projects.segment_images import main as segment_images_main
+import os
+
+input_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/images'
+output_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/segmented_images'
+
+for class_folder in os.listdir(input_base_folder):
+    input_folder = os.path.join(input_base_folder, class_folder)
+    output_folder = os.path.join(output_base_folder, class_folder)
+    segment_images_main(input_folder, output_folder)
+
+
+
+
+
+
+
+
+from projects.crop_images import add_background_to_images
+
+input_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/segmented_images'
+output_base_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/cropped_images'
+
+add_background_to_images(input_base_folder, output_base_folder)
+
+
+
+
+
+
+from projects.combine_images import combine_images
+
+output_folder_segmented = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/segmented_images'
+background_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/backgrounds'
+output_folder_final = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/imagen_final'
+label_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/labels'
+
+combine_images(output_folder_segmented, background_folder, output_folder_final, label_folder)
+
+
+
+
+
+
+
+from projects.verify_bboxes import verify_bounding_boxes
+
+output_folder_final = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/imagen_final'
+labels_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/labels'
+evaluation_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/evaluated'
+num_images_to_evaluate = 5
+
+verify_bounding_boxes(output_folder_final, labels_folder, evaluation_folder, num_images_to_evaluate)
+
+
+
+
+
+
+
+from projects.create_yolo_dataset import create_yolo_dataset
+
+output_folder_final = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/imagen_final'
+label_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/labels'
+dataset_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/dataset'
+train_ratio = 0.5
+
+create_yolo_dataset(
+    output_folder_final=output_folder_final,
+    label_folder=label_folder,
+    dataset_folder=dataset_folder,
+    train_ratio=train_ratio
+)
+
+
+
+
+
+
+
+from projects.create_market1501_dataset import create_market1501_dataset
+
+
+cropped_images_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/cropped_images'
+dataset_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/dataset_market1501'
+
+# DEfinir el ratio de imagenes para train
+train_ratio = 0.5
+
+create_market1501_dataset(cropped_images_folder, dataset_folder, train_ratio=train_ratio)

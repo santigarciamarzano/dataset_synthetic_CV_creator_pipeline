@@ -32,9 +32,9 @@ def verify_bounding_boxes(output_folder_final, labels_folder, evaluation_folder,
         img_draw.save(evaluation_image_path)
 
 if __name__ == "__main__":
-    output_folder_final = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator_2/data/imagen_final'
-    labels_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator_2/data/labels'
-    evaluation_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator_2/data/evaluated'
+    output_folder_final = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/imagen_final'
+    labels_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/labels'
+    evaluation_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/evaluated'
     num_images_to_evaluate = 50
 
     verify_bounding_boxes(output_folder_final, labels_folder, evaluation_folder, num_images_to_evaluate)
