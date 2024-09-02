@@ -2,7 +2,7 @@
 import os
 import cv2
 
-def extract_frames(video_path, output_folder, num_frames=None, interval=None):
+def extract_frames(video_path, output_folder, base_name, num_frames=None, interval=None):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
@@ -22,7 +22,8 @@ def extract_frames(video_path, output_folder, num_frames=None, interval=None):
         ret, frame = cap.read()
         if not ret:
             break
-        frame_path = os.path.join(output_folder, f"frame_{idx:04d}.jpg")
+        # Usar el formato <codigo-barra>_<camara-n>_<nro-imagen>.jpg
+        frame_path = os.path.join(output_folder, f"{base_name}{idx:04d}.jpg")
         cv2.imwrite(frame_path, frame)
 
     cap.release()

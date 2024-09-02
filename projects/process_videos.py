@@ -21,21 +21,15 @@ def process_videos_from_folder(video_folder, base_output_folder, num_frames=None
 
                             # Crear la carpeta de salida en 'image_market1501'
                             output_folder = os.path.join(base_output_folder, 'image_market1501', f"{codigo_barra}_{camera}")
-                            extract_frames(video_path, output_folder, num_frames, interval)
+                            # Crear el nombre base para las imágenes
+                            base_name = f"{codigo_barra}_{camera}_"
+                            extract_frames(video_path, output_folder, base_name, num_frames, interval)
 
     # Procesar videos sueltos en la carpeta raíz
     video_paths = [os.path.join(video_folder, f) for f in os.listdir(video_folder) if f.endswith(('.mp4', '.avi', '.mov'))]
     
     for class_idx, video_path in enumerate(video_paths):
         output_folder = os.path.join(base_output_folder, 'images_yolo', f"clase_{class_idx}")
-        extract_frames(video_path, output_folder, num_frames, interval)
-
-if __name__ == "__main__":
-    video_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data/videos'
-    base_output_folder = '/media/minigo/Disco/modelado3d/santiago/codigos/image_generator/data'
-    num_frames = 10  
-    interval = None  
-
-    process_videos_from_folder(video_folder, base_output_folder, num_frames, interval)
-
-
+        # También crear un nombre base para las imágenes de videos sueltos
+        base_name = f"clase_{class_idx}_"
+        extract_frames(video_path, output_folder, base_name, num_frames, interval)
